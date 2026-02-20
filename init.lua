@@ -21,6 +21,94 @@ local welcome_messages = {
 	[3] = "Content de te revoir ! N'oublie pas : utilise le bouton dans le spawn pour etre teleporte dans une zone non construite !"
 }
 
+-- Mots-cles importants pour extraction de phrases
+local keywords_map = {
+	-- Arbres
+	["pomme"] = "golden_apple",
+	["pommes dorees"] = "golden_apple",
+	["pommes dorées"] = "golden_apple",
+	["golden apple"] = "golden_apple",
+	["arbre jaune"] = "yellow_tree",
+	["yellow tree"] = "yellow_tree",
+	["healing tree"] = "yellow_tree",
+	["bananier"] = "banana_tree",
+	["banana"] = "banana_tree",
+	["palmier"] = "palm_tree",
+	["palm"] = "palm_tree",
+	["olivier"] = "olive_tree",
+	["olive"] = "olive_tree",
+	["citronnier"] = "lemon_tree",
+	["lemon"] = "lemon_tree",
+	["cerisier"] = "sakura_tree",
+	["sakura"] = "sakura_tree",
+	["sequoia"] = "redwood_tree",
+	["redwood"] = "redwood_tree",
+	
+	-- Anneaux
+	["voler"] = "celestial_ring",
+	["vol"] = "celestial_ring",
+	["fly"] = "celestial_ring",
+	["celestial"] = "celestial_ring",
+	["feu"] = "infernal_ring",
+	["lave"] = "infernal_ring",
+	["infernal"] = "infernal_ring",
+	["eau"] = "abyssal_ring",
+	["ocean"] = "abyssal_ring",
+	["respirer"] = "abyssal_ring",
+	["abyssal"] = "abyssal_ring",
+	["lumiere"] = "enlightning_ring",
+	["briller"] = "enlightning_ring",
+	["enlightning"] = "enlightning_ring",
+	["poings"] = "hardening_ring",
+	["hardening"] = "hardening_ring",
+	["activation"] = "activation_ring",
+	["anneau"] = "rings",
+	["anneaux"] = "rings",
+	
+	-- Avion
+	["avion"] = "supercub",
+	["voler avion"] = "supercub",
+	["piloter"] = "supercub",
+	["supercub"] = "supercub",
+	["decoller"] = "decoller",
+	["atterrir"] = "atterrir",
+	["carburant"] = "carburant_biofuel",
+	
+	-- Mods
+	["ethereal"] = "ethereal",
+	["glooptest"] = "glooptest",
+	["gloopblocks"] = "gloopblocks",
+	["rings"] = "rings",
+	
+	-- Minerais
+	["pioche"] = "pioche",
+	["pioches"] = "pioche",
+	["pickaxe"] = "pioche",
+	["fer"] = "fer",
+	["iron"] = "fer",
+	["diamant"] = "diamant",
+	["diamond"] = "diamant",
+	["mese"] = "mese",
+	["or"] = "or",
+	["gold"] = "or",
+	["kalite"] = "kalite",
+	["alatro"] = "alatro",
+	["akalin"] = "akalin",
+	["arol"] = "arol",
+	["talinite"] = "talinite",
+	
+	-- Blocs
+	["cement"] = "cement",
+	["ciment"] = "cement",
+	["evil"] = "evil_block",
+	["rainbow"] = "rainbow_block",
+	["basalt"] = "basalt",
+	["basalte"] = "basalt",
+	["pumice"] = "pumice",
+	["obsidian"] = "obsidian",
+	["obsidienne"] = "obsidian",
+}
+
 -- Envoyer un message Chester
 local function chester_say(text, player_name)
 	if player_name then
@@ -30,18 +118,40 @@ local function chester_say(text, player_name)
 	end
 end
 
+-- Extraire mots-cles d'une phrase
+local function extract_keywords(phrase)
+	local phrase_lower = phrase:lower()
+	local found_keywords = {}
+	
+	-- Chercher les expressions multi-mots en premier
+	for pattern, keyword in pairs(keywords_map) do
+		if #pattern > 3 and phrase_lower:find(pattern, 1, true) then
+			table.insert(found_keywords, keyword)
+		end
+	end
+	
+	-- Si rien trouvé, chercher les mots individuels
+	if #found_keywords == 0 then
+		for word in phrase_lower:gmatch("%w+") do
+			if keywords_map[word] then
+				table.insert(found_keywords, keywords_map[word])
+			end
+		end
+	end
+	
+	return found_keywords
+end
+
 -- Recherche dans PostgreSQL via API
 local function search_knowledge(keyword, player_name)
 	if not http then
 		chester_say("Desole, je ne peux pas acceder a ma base de connaissances pour le moment.", player_name)
-		minetest.log("error", "[Chester] HTTP non disponible")  -- ← AJOUTE
+		minetest.log("error", "[Chester] HTTP non disponible")
 		return
 	end
 	
 	local url = API_URL .. "?q=" .. minetest.encode_uri_component(keyword)
-	minetest.log("action", "[Chester] Requete API: " .. url)  -- ← AJOUTE
-	
-	local url = API_URL .. "?q=" .. minetest.encode_uri_component(keyword)
+	minetest.log("action", "[Chester] Requete API: " .. url .. " pour " .. player_name)
 	
 	http.fetch({
 		url = url,
@@ -49,47 +159,51 @@ local function search_knowledge(keyword, player_name)
 		method = "GET"
 	}, function(result)
 		if result.succeeded and result.code == 200 then
-			-- Parser la reponse JSON
 			local success, data = pcall(minetest.parse_json, result.data)
 			
 			if success and data and data.success and data.data then
-				-- Envoyer la reponse au joueur
 				local content = data.data.content
-				local category = data.data.category
 				
-				-- Formater la reponse
-				chester_say("(" .. category .. ") " .. content, player_name)
+				chester_say(content, player_name)
+				minetest.log("action", "[Chester] Reponse envoyee a " .. player_name .. " pour " .. keyword)
 			else
-				-- Pas de resultat trouve
-				chester_say("Je ne connais pas '" .. keyword .. "'. Essaie /chester list pour voir ce que je connais !", player_name)
+				chester_say("Je ne connais pas '" .. keyword .. "'. Essaie de reformuler ou tape 'chester list' !", player_name)
+				minetest.log("action", "[Chester] Aucun resultat pour: " .. keyword)
 			end
 		else
-			-- Erreur HTTP
-			minetest.log("warning", "[Chester] Erreur API: " .. (result.code or "timeout"))
+			minetest.log("warning", "[Chester] Erreur API code=" .. tostring(result.code) .. " pour " .. keyword)
 			chester_say("Oups, j'ai un petit probleme de memoire la. Reessaie dans quelques secondes !", player_name)
 		end
 	end)
 end
 
--- Liste des categories disponibles
-local function list_categories(player_name)
-	if not http then
-		chester_say("Ma base de connaissances n'est pas accessible.", player_name)
+-- Traiter une question en langage naturel
+local function process_question(question, player_name)
+	local keywords = extract_keywords(question)
+	
+	if #keywords == 0 then
+		chester_say("Je n'ai pas bien compris ta question. Peux-tu la reformuler ?", player_name)
+		chester_say("Ou tape 'chester list' pour voir ce que je connais.", player_name)
 		return
 	end
 	
-	-- Pour l'instant on liste les categories connues
-	-- TODO: Ajouter endpoint /categories a l'API
-	local categories = {
-		"mod", "mod_ethereal", "mod_glooptest", "mod_gloopblocks",
-		"mod_rings", "mod_supercub", "minerai", "guide"
-	}
-	
-	chester_say("Categories disponibles : " .. table.concat(categories, ", "), player_name)
-	chester_say("Utilise /chester help <mot> pour avoir de l'aide !", player_name)
+	-- Rechercher le premier mot-cle trouve
+	search_knowledge(keywords[1], player_name)
 end
 
--- Anti-spam : verifier si peut repondre
+-- Liste des categories disponibles
+local function list_categories(player_name)
+	chester_say("Je peux t'aider sur :", player_name)
+	chester_say("- Les mods : ethereal, glooptest, gloopblocks, rings, supercub", player_name)
+	chester_say("- Les arbres et plantes (pommes dorees, bananiers, etc)", player_name)
+	chester_say("- Les anneaux magiques (voler, feu, eau, etc)", player_name)
+	chester_say("- L'avion supercub (pilotage)", player_name)
+	chester_say("- Les minerais (kalite, alatro, etc)", player_name)
+	chester_say("", player_name)
+	chester_say("Pose-moi une question comme : 'chester ou trouver des pommes dorees ?'", player_name)
+end
+
+-- Anti-spam
 local function can_respond(player_name)
 	local now = os.time()
 	local last = last_response[player_name] or 0
@@ -115,47 +229,63 @@ minetest.register_on_joinplayer(function(player)
 		chester_say(msg, player_name)
 		
 		if login_count == 1 then
-			chester_say("Je suis Chester, ton guide ! Tape /chester help <sujet> pour avoir de l'aide. Par exemple : /chester help ethereal", player_name)
+			chester_say("Je suis Chester, ton guide ! Tu peux me poser des questions en ecrivant 'chester' suivi de ta question.", player_name)
+			chester_say("Exemple : chester ou trouver des pommes dorees ?", player_name)
 		end
 	end)
 end)
 
 -- Commande /chester
 minetest.register_chatcommand("chester", {
-	params = "<help/list> [mot-cle]",
-	description = "Demander de l'aide a Chester",
+	params = "<question ou list>",
+	description = "Poser une question a Chester",
 	func = function(name, param)
 		if not can_respond(name) then
 			return false, "Attends un peu avant de me reposer une question !"
 		end
 		
-		local args = {}
-		for word in param:gmatch("%S+") do
-			table.insert(args, word)
-		end
-		
-		if #args == 0 or args[1] == "help" then
-			if #args < 2 then
-				chester_say("Utilise /chester help <mot> pour avoir des infos. Exemple : /chester help ethereal", name)
-				return true
-			end
-			
-			-- Recherche dans la base
-			local keyword = args[2]:lower()
-			search_knowledge(keyword, name)
+		if param == "" then
+			chester_say("Pose-moi une question ! Exemple : chester ou trouver des pommes dorees ?", name)
 			return true
 		end
 		
-		if args[1] == "list" then
+		if param == "list" then
 			list_categories(name)
 			return true
 		end
 		
-		return false, "Commandes : /chester help <mot> ou /chester list"
+		-- Traiter la question
+		process_question(param, name)
+		return true
 	end
 })
 
--- Commande /spawn (teleportation)
+-- Ecouter le chat pour "chester <question>"
+minetest.register_on_chat_message(function(name, message)
+	local msg_lower = message:lower()
+	
+	-- Detecter si le message commence par "chester"
+	if msg_lower:match("^chester[%s,:]") or msg_lower == "chester" then
+		if not can_respond(name) then
+			chester_say("Attends un peu avant de me reposer une question !", name)
+			return false
+		end
+		
+		-- Extraire la question (tout ce qui suit "chester")
+		local question = message:match("[Cc]hester[%s,:]*(.+)")
+		
+		if question and question ~= "" then
+			process_question(question, name)
+		else
+			chester_say("Oui ? Pose-moi une question !", name)
+			chester_say("Exemple : chester ou trouver des pommes dorees ?", name)
+		end
+		
+		return false
+	end
+end)
+
+-- Commande /spawn
 minetest.register_chatcommand("spawn", {
 	description = "Se teleporter au spawn",
 	func = function(name)
@@ -169,26 +299,61 @@ minetest.register_chatcommand("spawn", {
 	end
 })
 
--- Spawn du NPC Chester avec eggs
--- Depend de mobs_redo
+-- Commande admin cleanup
+minetest.register_chatcommand("chester_cleanup", {
+	description = "Supprimer tous les Chester sauf un (admin)",
+	privs = {server = true},
+	func = function(name)
+		local count = 0
+		local kept = false
+		
+		for _, obj in pairs(minetest.luaentities) do
+			if obj.name == "chester:chester_npc" then
+				if not kept then
+					kept = true
+					minetest.log("action", "[Chester] Chester garde")
+				else
+					obj.object:remove()
+					count = count + 1
+				end
+			end
+		end
+		
+		return true, "Chester cleanup: " .. count .. " supprime(s)"
+	end
+})
+
+-- Spawn du NPC Chester (optionnel avec mobs_redo)
 if minetest.get_modpath("mobs") then
 	mobs:register_mob("chester:chester_npc", {
 		type = "npc",
+		nametag = "Chester",
+		description = "Chester - Guide du serveur",
 		passive = true,
 		hp_min = 100,
 		hp_max = 100,
 		armor = 100,
-		collisionbox = {-0.35, -1, -0.35, 0.35, 0.8, 0.35},
+		collisionbox = {-0.35, 0, -0.35, 0.35, 1.8, 0.35},
+		physical = true,
+		collide_with_objects = true,
 		visual = "mesh",
 		mesh = "character.b3d",
 		textures = {
 			{"chester_npc.png"}
 		},
-		makes_footstep_sound = true,
+		makes_footstep_sound = false,
 		sounds = {},
 		walk_velocity = 0,
 		run_velocity = 0,
 		jump = false,
+		jump_height = 0,
+		stepheight = 0,
+		walk_chance = 0,
+		stand_chance = 100,
+		jump_chance = 0,
+		pathfinding = false,
+		floats = 0,
+		automatic_face_movement_dir = false,
 		drops = {},
 		water_damage = 0,
 		lava_damage = 0,
@@ -198,32 +363,25 @@ if minetest.get_modpath("mobs") then
 		owner = "",
 		order = "stand",
 		fear_height = 0,
-		jump_height = 0,
-		stepheight = 0,
-		automatic_face_movement_dir = false,
-		fear_height = 0,
-		walk_chance = 0,           -- ← AJOUTE
-		stand_chance = 100,        -- ← AJOUTE
-		jump_chance = 0,           -- ← AJOUTE
-		pathfinding = false,       -- ← AJOUTE
-		floats = 0,                -- ← AJOUTE
-		collisionbox = {-0.35, 0, -0.35, 0.35, 1.8, 0.35},
-		physical = true,              -- ← AJOUTE
-		collide_with_objects = true,  -- ← AJOUTE
 		animation = {
-			speed_normal = 0,       -- ← Change de 30 à 0
-			speed_run = 0,          -- ← Change de 30 à 0
+			speed_normal = 0,
+			speed_run = 0,
 			stand_start = 0,
 			stand_end = 79,
-			walk_start = 0,         -- ← Change de 168 à 0
-			walk_end = 79,          -- ← Change de 187 à 79
-			run_start = 0,          -- ← Change de 168 à 0
-			run_end = 79,           -- ← Change de 187 à 79
+			walk_start = 0,
+			walk_end = 79,
+			run_start = 0,
+			run_end = 79,
 			punch_start = 200,
 			punch_end = 219,
 		},
 		
 		on_rightclick = function(self, clicker)
+			-- Forcer le nametag
+			if not self.nametag or self.nametag == "" then
+				self.nametag = "Chester"
+			end
+			
 			local name = clicker:get_player_name()
 			
 			if not can_respond(name) then
@@ -232,10 +390,10 @@ if minetest.get_modpath("mobs") then
 			end
 			
 			local responses = {
-				"Bonjour ! Tape /chester help <sujet> pour que je t'aide !",
-				"Salut ! Tu cherches de l'aide ? Utilise /chester help <mot>",
-				"Coucou ! Je connais plein de choses sur les mods du serveur !",
-				"Hello ! Besoin d'aide ? /chester list pour voir ce que je sais !"
+				"Bonjour ! Tu peux me poser des questions en ecrivant 'chester' suivi de ta question !",
+				"Salut ! Essaie : chester ou trouver des pommes dorees ?",
+				"Coucou ! Je connais plein de choses sur les mods du serveur ! Tape 'chester list'",
+				"Hello ! Besoin d'aide ? Tape 'chester' suivi de ta question dans le chat !"
 			}
 			
 			chester_say(responses[math.random(#responses)], name)
@@ -244,29 +402,6 @@ if minetest.get_modpath("mobs") then
 	
 	-- Egg de spawn Chester (privilege server)
 	mobs:register_egg("chester:chester_npc", "Chester NPC", "chester_npc.png", 0)
-	
-	minetest.register_chatcommand("chester_cleanup", {
-		description = "Supprimer tous les Chester sauf un (admin)",
-		privs = {server = true},
-		func = function(name)
-			local count = 0
-			local kept = false
-			
-			for _, obj in pairs(minetest.luaentities) do
-				if obj.name == "chester:chester_npc" then
-					if not kept then
-						kept = true
-						minetest.log("action", "[Chester] Chester garde")
-					else
-						obj.object:remove()
-						count = count + 1
-					end
-				end
-			end
-			
-			return true, "Chester cleanup: " .. count .. " supprime(s)"
-		end
-	})
 	
 	-- Commande admin pour donner l'egg
 	minetest.register_chatcommand("giveme_chester", {
@@ -278,7 +413,7 @@ if minetest.get_modpath("mobs") then
 			if player then
 				local inv = player:get_inventory()
 				inv:add_item("main", "chester:chester_npc")
-				return true, "Oeuf de Chester donne !"
+				return true, "Oeuf de Chester donne ! Place-le au spawn."
 			end
 			return false
 		end
