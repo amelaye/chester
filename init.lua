@@ -194,6 +194,9 @@ if minetest.get_modpath("mobs") then
 		owner = "",
 		order = "stand",
 		fear_height = 0,
+		jump_height = 0,
+		stepheight = 0,
+		automatic_face_movement_dir = false,
 		animation = {
 			speed_normal = 30,
 			speed_run = 30,
