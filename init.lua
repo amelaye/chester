@@ -109,6 +109,17 @@ local keywords_map = {
 	["obsidienne"] = "obsidian",
 }
 
+-- Fonction pour encoder les URL (si minetest.encode_uri_component n'existe pas)
+local function url_encode(str)
+	if str then
+		str = string.gsub(str, "\n", "\r\n")
+		str = string.gsub(str, "([^%w %-%_%.%~])",
+			function(c) return string.format("%%%02X", string.byte(c)) end)
+		str = string.gsub(str, " ", "+")
+	end
+	return str
+end
+
 -- Envoyer un message Chester
 local function chester_say(text, player_name)
 	if player_name then
@@ -150,7 +161,7 @@ local function search_knowledge(keyword, player_name)
 		return
 	end
 	
-	local url = API_URL .. "?q=" .. minetest.encode_uri_component(keyword)
+	local url = API_URL .. "?q=" .. url_encode(keyword)
 	minetest.log("action", "[Chester] Requete API: " .. url .. " pour " .. player_name)
 	
 	http.fetch({
