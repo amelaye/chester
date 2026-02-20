@@ -343,8 +343,13 @@ if minetest.get_modpath("mobs") then
 		passive = true,
 		hp_min = 100,
 		hp_max = 100,
-		immortal = true,           -- ← AJOUTE
-		invulnerable = true,       -- ← AJOUTE
+		immortal = true,
+		invulnerable = true,
+		damage_texture_modifier = "",  -- ← AJOUTE (pas de flash rouge)
+
+		on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
+			return true  -- Bloque tous les dégâts
+		end,
 		armor = 100,
 		collisionbox = {-0.35, 0, -0.35, 0.35, 1.8, 0.35},
 		physical = true,
