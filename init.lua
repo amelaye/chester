@@ -343,6 +343,8 @@ if minetest.get_modpath("mobs") then
 		passive = true,
 		hp_min = 100,
 		hp_max = 100,
+		immortal = true,           -- ← AJOUTE
+		invulnerable = true,       -- ← AJOUTE
 		armor = 100,
 		collisionbox = {-0.35, 0, -0.35, 0.35, 1.8, 0.35},
 		physical = true,
