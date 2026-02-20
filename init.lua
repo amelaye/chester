@@ -238,10 +238,12 @@ if minetest.get_modpath("mobs") then
 		)
 		
 		local chester_exists = false
-		for _, obj in ipairs(objects) do
-			if obj:get_luaentity() and obj:get_luaentity().name == "chester:chester_npc" then
-				chester_exists = true
-				break
+		if objects then  -- Ajouter cette vérification
+			for _, obj in ipairs(objects) do
+				if obj and obj:get_luaentity() and obj:get_luaentity().name == "chester:chester_npc" then
+					chester_exists = true
+					break
+				end
 			end
 		end
 		
@@ -250,8 +252,11 @@ if minetest.get_modpath("mobs") then
 			minetest.after(2, function()
 				local chester = minetest.add_entity(CHESTER_SPAWN, "chester:chester_npc")
 				if chester then
-					chester:get_luaentity().nametag = "Chester"
-					chester:get_luaentity().tamed = true
+					local ent = chester:get_luaentity()
+					if ent then
+						ent.nametag = "Chester"
+						ent.tamed = true
+					end
 					minetest.log("action", "[Chester] Chester spawne au spawn")
 				end
 			end)
