@@ -245,35 +245,28 @@ if minetest.get_modpath("mobs") then
 	-- Egg de spawn Chester (privilege server)
 	mobs:register_egg("chester:chester_npc", "Chester NPC", "chester_npc.png", 0)
 	
-	-- Spawn unique de Chester au demarrage
-	minetest.register_on_mods_loaded(function()
-		minetest.after(3, function()  -- Attendre que le monde soit bien chargé
-			-- Compter tous les Chester existants
-			local all_objects = minetest.luaentities
-			local chester_count = 0
+	minetest.register_chatcommand("chester_cleanup", {
+		description = "Supprimer tous les Chester sauf un (admin)",
+		privs = {server = true},
+		func = function(name)
+			local count = 0
+			local kept = false
 			
-			for id, entity in pairs(all_objects) do
-				if entity.name == "chester:chester_npc" then
-					chester_count = chester_count + 1
-				end
-			end
-			
-			minetest.log("action", "[Chester] " .. chester_count .. " Chester(s) trouve(s)")
-			
-			-- Si aucun Chester, en spawn un
-			if chester_count == 0 then
-				local chester = minetest.add_entity(CHESTER_SPAWN, "chester:chester_npc")
-				if chester then
-					local ent = chester:get_luaentity()
-					if ent then
-						ent.nametag = "Chester"
-						ent.tamed = true
+			for _, obj in pairs(minetest.luaentities) do
+				if obj.name == "chester:chester_npc" then
+					if not kept then
+						kept = true
+						minetest.log("action", "[Chester] Chester garde")
+					else
+						obj.object:remove()
+						count = count + 1
 					end
-					minetest.log("action", "[Chester] Chester spawne au spawn")
 				end
 			end
-		end)
-	end)
+			
+			return true, "Chester cleanup: " .. count .. " supprime(s)"
+		end
+	})
 	
 	-- Commande admin pour donner l'egg
 	minetest.register_chatcommand("giveme_chester", {
