@@ -7,7 +7,7 @@ local last_response = {}
 local CHESTER_SPAWN = {x = -754, y = 1.5, z = -230}
 
 -- Configuration API
-local API_URL = "http://localhost:8080/chester_api.php"
+local API_URL = "http://localhost/chester_api.php"
 local http = minetest.request_http_api()
 
 if not http then
