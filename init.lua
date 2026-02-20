@@ -34,8 +34,12 @@ end
 local function search_knowledge(keyword, player_name)
 	if not http then
 		chester_say("Desole, je ne peux pas acceder a ma base de connaissances pour le moment.", player_name)
+		minetest.log("error", "[Chester] HTTP non disponible")  -- ← AJOUTE
 		return
 	end
+	
+	local url = API_URL .. "?q=" .. minetest.encode_uri_component(keyword)
+	minetest.log("action", "[Chester] Requete API: " .. url)  -- ← AJOUTE
 	
 	local url = API_URL .. "?q=" .. minetest.encode_uri_component(keyword)
 	
@@ -243,25 +247,21 @@ if minetest.get_modpath("mobs") then
 	
 	-- Spawn unique de Chester au demarrage
 	minetest.register_on_mods_loaded(function()
-		-- Verifier si Chester existe deja dans un rayon de 30000 blocs
-		local objects = minetest.get_objects_in_area(
-			{x = CHESTER_SPAWN.x - 30000, y = CHESTER_SPAWN.y - 100, z = CHESTER_SPAWN.z - 30000},
-			{x = CHESTER_SPAWN.x + 30000, y = CHESTER_SPAWN.y + 100, z = CHESTER_SPAWN.z + 30000}
-		)
-		
-		local chester_exists = false
-		if objects then  -- Ajouter cette vérification
-			for _, obj in ipairs(objects) do
-				if obj and obj:get_luaentity() and obj:get_luaentity().name == "chester:chester_npc" then
-					chester_exists = true
-					break
+		minetest.after(3, function()  -- Attendre que le monde soit bien chargé
+			-- Compter tous les Chester existants
+			local all_objects = minetest.luaentities
+			local chester_count = 0
+			
+			for id, entity in pairs(all_objects) do
+				if entity.name == "chester:chester_npc" then
+					chester_count = chester_count + 1
 				end
 			end
-		end
-		
-		-- Spawn Chester si n'existe pas
-		if not chester_exists then
-			minetest.after(2, function()
+			
+			minetest.log("action", "[Chester] " .. chester_count .. " Chester(s) trouve(s)")
+			
+			-- Si aucun Chester, en spawn un
+			if chester_count == 0 then
 				local chester = minetest.add_entity(CHESTER_SPAWN, "chester:chester_npc")
 				if chester then
 					local ent = chester:get_luaentity()
@@ -271,8 +271,8 @@ if minetest.get_modpath("mobs") then
 					end
 					minetest.log("action", "[Chester] Chester spawne au spawn")
 				end
-			end)
-		end
+			end
+		end)
 	end)
 	
 	-- Commande admin pour donner l'egg
