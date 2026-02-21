@@ -21,93 +21,6 @@ local welcome_messages = {
 	[3] = "Content de te revoir ! N'oublie pas : utilise le bouton dans le spawn pour etre teleporte dans une zone non construite !"
 }
 
--- Mots-cles importants pour extraction de phrases
-local keywords_map = {
-	-- Arbres
-	["pomme"] = "golden_apple",
-	["pommes dorees"] = "golden_apple",
-	["pommes dorées"] = "golden_apple",
-	["golden apple"] = "golden_apple",
-	["arbre jaune"] = "yellow_tree",
-	["yellow tree"] = "yellow_tree",
-	["healing tree"] = "yellow_tree",
-	["bananier"] = "banana_tree",
-	["banana"] = "banana_tree",
-	["palmier"] = "palm_tree",
-	["palm"] = "palm_tree",
-	["olivier"] = "olive_tree",
-	["olive"] = "olive_tree",
-	["citronnier"] = "lemon_tree",
-	["lemon"] = "lemon_tree",
-	["cerisier"] = "sakura_tree",
-	["sakura"] = "sakura_tree",
-	["sequoia"] = "redwood_tree",
-	["redwood"] = "redwood_tree",
-	
-	-- Anneaux
-	["voler"] = "celestial_ring",
-	["vol"] = "celestial_ring",
-	["fly"] = "celestial_ring",
-	["celestial"] = "celestial_ring",
-	["feu"] = "infernal_ring",
-	["lave"] = "infernal_ring",
-	["infernal"] = "infernal_ring",
-	["eau"] = "abyssal_ring",
-	["ocean"] = "abyssal_ring",
-	["respirer"] = "abyssal_ring",
-	["abyssal"] = "abyssal_ring",
-	["lumiere"] = "enlightning_ring",
-	["briller"] = "enlightning_ring",
-	["enlightning"] = "enlightning_ring",
-	["poings"] = "hardening_ring",
-	["hardening"] = "hardening_ring",
-	["activation"] = "activation_ring",
-	["anneau"] = "rings",
-	["anneaux"] = "rings",
-	
-	-- Avion
-	["avion"] = "supercub",
-	["voler avion"] = "supercub",
-	["piloter"] = "supercub",
-	["supercub"] = "supercub",
-	["decoller"] = "decoller",
-	["atterrir"] = "atterrir",
-	["carburant"] = "carburant_biofuel",
-	
-	-- Mods
-	["ethereal"] = "ethereal",
-	["glooptest"] = "glooptest",
-	["gloopblocks"] = "gloopblocks",
-	["rings"] = "rings",
-	
-	-- Minerais
-	["pioche"] = "pioche",
-	["pioches"] = "pioche",
-	["pickaxe"] = "pioche",
-	["fer"] = "fer",
-	["iron"] = "fer",
-	["diamant"] = "diamant",
-	["diamond"] = "diamant",
-	["mese"] = "mese",
-	["or"] = "or",
-	["gold"] = "or",
-	["kalite"] = "kalite",
-	["alatro"] = "alatro",
-	["akalin"] = "akalin",
-	["arol"] = "arol",
-	["talinite"] = "talinite",
-	
-	-- Blocs
-	["cement"] = "cement",
-	["ciment"] = "cement",
-	["evil"] = "evil_block",
-	["rainbow"] = "rainbow_block",
-	["basalt"] = "basalt",
-	["basalte"] = "basalt",
-	["pumice"] = "pumice",
-	["obsidian"] = "obsidian",
-	["obsidienne"] = "obsidian",
-}
 
 -- Fonction pour encoder les URL (si minetest.encode_uri_component n'existe pas)
 local function url_encode(str)
@@ -129,28 +42,33 @@ local function chester_say(text, player_name)
 	end
 end
 
--- Extraire mots-cles d'une phrase
+-- Extraire mots-cles d'une phrase (simplifié - l'API gère les alias)
 local function extract_keywords(phrase)
 	local phrase_lower = phrase:lower()
-	local found_keywords = {}
+	local words = {}
 	
-	-- Chercher les expressions multi-mots en premier
-	for pattern, keyword in pairs(keywords_map) do
-		if #pattern > 3 and phrase_lower:find(pattern, 1, true) then
-			table.insert(found_keywords, keyword)
+	-- Extraire tous les mots de 3+ caractères
+	for word in phrase_lower:gmatch("[%w_]+") do
+		if #word >= 3 then
+			table.insert(words, word)
 		end
 	end
 	
-	-- Si rien trouvé, chercher les mots individuels
-	if #found_keywords == 0 then
-		for word in phrase_lower:gmatch("%w+") do
-			if keywords_map[word] then
-				table.insert(found_keywords, keywords_map[word])
-			end
+	-- Filtrer les mots vides courants
+	local ignored = {
+		qui=true, est=true, comment=true, quoi=true, quand=true, 
+		pourquoi=true, dans=true, sur=true, pour=true, avec=true,
+		une=true, des=true, les=true, que=true, pas=true
+	}
+	
+	local result = {}
+	for _, word in ipairs(words) do
+		if not ignored[word] then
+			table.insert(result, word)
 		end
 	end
 	
-	return found_keywords
+	return result
 end
 
 -- Recherche dans PostgreSQL via API
