@@ -35,11 +35,11 @@ end
 
 -- Envoyer un message Chester
 local function chester_say(text, player_name)
-	if player_name then
-		minetest.chat_send_player(player_name, CHESTER_COLOR .. " " .. text)
-	else
+	--if player_name then
+	--	minetest.chat_send_player(player_name, CHESTER_COLOR .. " " .. text)
+	--else
 		minetest.chat_send_all(CHESTER_COLOR .. " " .. text)
-	end
+	--end
 end
 
 -- Extraire mots-cles d'une phrase (simplifié - l'API gère les alias)
