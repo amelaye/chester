@@ -42,7 +42,6 @@ local function chester_say(text, player_name)
 	--end
 end
 
--- Extraire mots-cles d'une phrase (simplifié - l'API gère les alias)
 local function extract_keywords(phrase)
 	local phrase_lower = phrase:lower()
 	local words = {}
@@ -58,7 +57,8 @@ local function extract_keywords(phrase)
 	local ignored = {
 		qui=true, est=true, comment=true, quoi=true, quand=true, 
 		pourquoi=true, dans=true, sur=true, pour=true, avec=true,
-		une=true, des=true, les=true, que=true, pas=true
+		une=true, des=true, les=true, que=true, pas=true,
+		sais=true, peut=true, faire=true, ton=true, parle=true, dit=true  -- ← AJOUTE ÇA
 	}
 	
 	local result = {}
