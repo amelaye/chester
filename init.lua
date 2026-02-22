@@ -366,9 +366,7 @@ if minetest.get_modpath("mobs") then
         end,
 
         do_custom = function(self, dtime)
-            if self.object and self.object:get_hp then
-                self.object:set_hp(100)
-            end
+            self.object:set_hp(100)
             self.health = 100
             return false
         end
