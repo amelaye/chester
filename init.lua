@@ -372,6 +372,46 @@ if minetest.get_modpath("mobs") then
         end
 	})
 	
+	-- Détecter les coups sur Chester
+	minetest.register_on_punchplayer(function(player, hitter, time_from_last_punch, tool_capabilities, dir, damage)
+		-- Vérifier si un Chester est proche du joueur frappé
+		if not hitter or not hitter:is_player() then return end
+		
+		local hitter_name = hitter:get_player_name()
+		local hitter_pos = hitter:get_pos()
+		
+		-- Chercher Chester dans un rayon de 3 blocs
+		for _, obj in pairs(minetest.get_objects_inside_radius(hitter_pos, 3)) do
+			local entity = obj:get_luaentity()
+			if entity and entity.name == "chester:chester_npc" then
+				
+				punch_count[hitter_name] = (punch_count[hitter_name] or 0) + 1
+				local count = punch_count[hitter_name]
+				
+				if count == 1 then
+					chester_say("Aïe ! Arrête de me taper !", hitter_name)
+				elseif count == 3 then
+					chester_say("Sérieux, arrête ou je vais me fâcher !", hitter_name)
+				elseif count == 5 then
+					chester_say("STOP ! Tu m'énerves là !", hitter_name)
+				elseif count == 8 then
+					chester_say("DERNIER avertissement " .. hitter_name .. " !", hitter_name)
+				elseif count >= 10 then
+					minetest.kick_player(hitter_name, "Trop de violence envers Chester !")
+					punch_count[hitter_name] = 0
+				end
+				
+				minetest.after(60, function()
+					if punch_count[hitter_name] and punch_count[hitter_name] > 0 then
+						punch_count[hitter_name] = punch_count[hitter_name] - 1
+					end
+				end)
+				
+				break
+			end
+		end
+	end)
+
 	-- Egg de spawn Chester (privilege server)
 	mobs:register_egg("chester:chester_npc", "Chester NPC", "chester_npc.png", 0)
 	
