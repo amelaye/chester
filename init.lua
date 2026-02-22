@@ -380,6 +380,19 @@ if minetest.get_modpath("mobs") then
 		end
 	end)
 	
+	-- Forcer HP Chester à 100
+	minetest.register_globalstep(function(dtime)
+		for _, obj in pairs(minetest.luaentities) do
+			if obj.name == "chester:chester_npc" then
+				if obj.object and obj.object.set_hp then
+					obj.object:set_hp(100)
+				end
+				if obj.health then
+					obj.health = 100
+				end
+			end
+		end
+	end)
 
 	-- Egg de spawn Chester (privilege server)
 	mobs:register_egg("chester:chester_npc", "Chester NPC", "chester_npc.png", 0)
