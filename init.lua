@@ -363,18 +363,16 @@ if minetest.get_modpath("mobs") then
             end)
             
             return true
+        end,
+
+		do_custom = function(self, dtime)
+            if self.object and self.object:get_hp then
+                self.object:set_hp(100)
+            end
+            self.health = 100
+            return false
         end
 	})
-
-	-- Après la définition du mob, ajoute :
-	minetest.register_globalstep(function(dtime)
-		for _, obj in pairs(minetest.luaentities) do
-			if obj.name == "chester:chester_npc" and obj.health then
-				obj.health = 100
-				obj.object:set_hp(100)
-			end
-		end
-	end)
 	
 	-- Egg de spawn Chester (privilege server)
 	mobs:register_egg("chester:chester_npc", "Chester NPC", "chester_npc.png", 0)
