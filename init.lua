@@ -84,7 +84,7 @@ local function search_knowledge(keyword, player_name)
 	
 	http.fetch({
 		url = url,
-		timeout = 5,
+		timeout = 30,
 		method = "GET"
 	}, function(result)
 		if result.succeeded and result.code == 200 then
