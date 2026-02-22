@@ -331,9 +331,6 @@ if minetest.get_modpath("mobs") then
             
             chester_say(responses[math.random(#responses)], name)
         end
-
-		return false
-	end
 	})
 
 	-- Détection directe des coups sur Chester
