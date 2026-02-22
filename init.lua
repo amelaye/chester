@@ -330,91 +330,58 @@ if minetest.get_modpath("mobs") then
             }
             
             chester_say(responses[math.random(#responses)], name)
-        end,  -- ← VIRGULE importante !
-        
-        on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
-            if not puncher or not puncher:is_player() then 
-                return true
-            end
-            
-            local player_name = puncher:get_player_name()
-            
-            punch_count[player_name] = (punch_count[player_name] or 0) + 1
-            local count = punch_count[player_name]
-            
-            if count == 1 then
-                chester_say("Aïe ! Arrête de me taper !", player_name)
-            elseif count == 3 then
-                chester_say("Sérieux, arrête ou je vais me fâcher !", player_name)
-            elseif count == 5 then
-                chester_say("STOP ! Tu m'énerves là !", player_name)
-            elseif count == 8 then
-                chester_say("DERNIER avertissement " .. player_name .. " !", player_name)
-            elseif count >= 10 then
-                minetest.kick_player(player_name, "Trop de violence envers Chester !")
-                punch_count[player_name] = 0
-                return true
-            end
-            
-            minetest.after(60, function()
-                if punch_count[player_name] and punch_count[player_name] > 0 then
-                    punch_count[player_name] = punch_count[player_name] - 1
-                end
-            end)
-            
-            return true
-        end,
+        end
 
-        do_custom = function(self, dtime)
-		self.object:set_hp(100)
-		self.health = 100
-		
-		-- Détecter les joueurs proches qui pourraient frapper
-		local pos = self.object:get_pos()
-		if not pos then return false end
-		
-		local nearby = minetest.get_objects_inside_radius(pos, 2)
-		for _, obj in pairs(nearby) do
-			if obj:is_player() then
-				local player = obj
-				local player_name = player:get_player_name()
-				local ctrl = player:get_player_control()
+		return false
+	end
+	})
+
+	-- Détection directe des coups sur Chester
+	local last_check = {}
+
+	minetest.register_globalstep(function(dtime)
+		for _, player in pairs(minetest.get_connected_players()) do
+			local player_name = player:get_player_name()
+			local ctrl = player:get_player_control()
+			
+			-- Si le joueur clique (dig/LMB)
+			if ctrl.dig or ctrl.LMB then
+				local pos = player:get_pos()
+				local dir = player:get_look_dir()
+				local target_pos = vector.add(pos, vector.multiply(dir, 2))
 				
-				-- Si le joueur clique gauche (frappe)
-				if ctrl.dig or ctrl.LMB then
-					if not self.last_punch_time then
-						self.last_punch_time = {}
-					end
-					
-					local now = os.time()
-					local last = self.last_punch_time[player_name] or 0
-					
-					if now - last > 1 then  -- Max 1 coup par seconde
-						self.last_punch_time[player_name] = now
+				-- Chercher Chester proche
+				for _, obj in pairs(minetest.get_objects_inside_radius(target_pos, 2)) do
+					local entity = obj:get_luaentity()
+					if entity and entity.name == "chester:chester_npc" then
 						
-						punch_count[player_name] = (punch_count[player_name] or 0) + 1
-						local count = punch_count[player_name]
+						local now = os.time()
+						local last = last_check[player_name] or 0
 						
-						if count == 1 then
-							chester_say("Aïe ! Arrête de me taper !", player_name)
-						elseif count == 3 then
-							chester_say("Sérieux, arrête ou je vais me fâcher !", player_name)
-						elseif count == 5 then
-							chester_say("STOP ! Tu m'énerves là !", player_name)
-						elseif count == 8 then
-							chester_say("DERNIER avertissement " .. player_name .. " !", player_name)
-						elseif count >= 10 then
-							minetest.kick_player(player_name, "Trop de violence envers Chester !")
-							punch_count[player_name] = 0
+						if now - last >= 1 then
+							last_check[player_name] = now
+							
+							punch_count[player_name] = (punch_count[player_name] or 0) + 1
+							local count = punch_count[player_name]
+							
+							if count == 1 then
+								chester_say("Aïe ! Arrête de me taper !", player_name)
+							elseif count == 3 then
+								chester_say("Sérieux, arrête !", player_name)
+							elseif count == 5 then
+								chester_say("STOP !", player_name)
+							elseif count == 8 then
+								chester_say("DERNIER avertissement !", player_name)
+							elseif count >= 10 then
+								minetest.kick_player(player_name, "Violence envers Chester !")
+								punch_count[player_name] = 0
+							end
 						end
 					end
 				end
 			end
 		end
-		
-		return false
-	end
-	})
+	end)
 	
 
 	-- Egg de spawn Chester (privilege server)
