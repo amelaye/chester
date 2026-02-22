@@ -332,7 +332,7 @@ if minetest.get_modpath("mobs") then
             chester_say(responses[math.random(#responses)], name)
         end,  -- ← VIRGULE importante !
         
-        on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
+        on_attack = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
             if not puncher or not puncher:is_player() then 
                 return true
             end
