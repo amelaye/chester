@@ -263,8 +263,8 @@ if minetest.get_modpath("mobs") then
         passive = true,
         hp_min = 100,
         hp_max = 100,
-        immortal = true,
-        invulnerable = true,
+        immortal = false,
+        invulnerable = false,
         damage_texture_modifier = "",
         armor = 100,
         collisionbox = {-0.35, 0, -0.35, 0.35, 1.8, 0.35},
@@ -332,7 +332,7 @@ if minetest.get_modpath("mobs") then
             chester_say(responses[math.random(#responses)], name)
         end,  -- ← VIRGULE importante !
         
-        on_attack = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
+        on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
             if not puncher or not puncher:is_player() then 
                 return true
             end
