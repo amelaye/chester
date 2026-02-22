@@ -84,7 +84,7 @@ local function search_knowledge(keyword, player_name)
 	
 	http.fetch({
 		url = url,
-		timeout = 15,
+		timeout = 5,
 		method = "GET"
 	}, function(result)
 		if result.succeeded and result.code == 200 then
@@ -334,6 +334,46 @@ if minetest.get_modpath("mobs") then
 			
 			chester_say(responses[math.random(#responses)], name)
 		end
+
+		-- Compteur de coups (en dehors de la définition)
+		local punch_count = {}
+
+		-- Puis DANS la définition du mob :
+		on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
+			if not puncher or not puncher:is_player() then 
+				return true -- Bloque les dégâts
+			end
+			
+			local player_name = puncher:get_player_name()
+			
+			-- Initialiser compteur
+			punch_count[player_name] = (punch_count[player_name] or 0) + 1
+			local count = punch_count[player_name]
+			
+			-- Messages
+			if count == 1 then
+				chester_say("Aïe ! Arrête de me taper !", player_name)
+			elseif count == 3 then
+				chester_say("Sérieux, arrête ou je vais me fâcher !", player_name)
+			elseif count == 5 then
+				chester_say("STOP ! Tu m'énerves là !", player_name)
+			elseif count == 8 then
+				chester_say("DERNIER avertissement " .. player_name .. " !", player_name)
+			elseif count >= 10 then
+				minetest.kick_player(player_name, "Trop de violence envers Chester !")
+				punch_count[player_name] = 0
+				return true
+			end
+			
+			-- Reset après 60s
+			minetest.after(60, function()
+				if punch_count[player_name] and punch_count[player_name] > 0 then
+					punch_count[player_name] = punch_count[player_name] - 1
+				end
+			end)
+			
+			return true -- Bloque tous les dégâts
+		end
 	})
 
 	-- Après la définition du mob, ajoute :
@@ -365,52 +405,5 @@ if minetest.get_modpath("mobs") then
 		end
 	})
 end
-
--- Compteur de coups par joueur
-local punch_count = {}
-
--- Fonction quand Chester est frappé
-minetest.register_on_punchnode(function(pos, node, puncher, pointed_thing)
-	if not puncher or not puncher:is_player() then return end
-	
-	-- Vérifier si c'est un NPC Chester qui est frappé
-	local objects = minetest.get_objects_inside_radius(pos, 2)
-	for _, obj in pairs(objects) do
-		local entity = obj:get_luaentity()
-		if entity and entity.name == "chester:chester_npc" then
-			
-			local player_name = puncher:get_player_name()
-			
-			-- Initialiser le compteur
-			if not punch_count[player_name] then
-				punch_count[player_name] = 0
-			end
-			
-			punch_count[player_name] = punch_count[player_name] + 1
-			local count = punch_count[player_name]
-			
-			-- Messages progressifs
-			if count == 1 then
-				chester_say("Aïe ! Arrête de me taper !", player_name)
-			elseif count == 3 then
-				chester_say("Sérieux, arrête ou je vais me fâcher !", player_name)
-			elseif count == 5 then
-				chester_say("STOP ! Tu commences à m'énerver là !", player_name)
-			elseif count == 8 then
-				chester_say("Dernier avertissement " .. player_name .. " !", player_name)
-			elseif count >= 10 then
-				minetest.kick_player(player_name, "Trop de violence envers Chester !")
-				punch_count[player_name] = 0
-			end
-			
-			-- Reset après 60 secondes sans coup
-			minetest.after(60, function()
-				if punch_count[player_name] then
-					punch_count[player_name] = math.max(0, punch_count[player_name] - 1)
-				end
-			end)
-		end
-	end
-end)
 
 minetest.log("action", "[Chester] v12 charge avec API PostgreSQL (" .. API_URL .. ")")
