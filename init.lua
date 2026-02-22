@@ -108,16 +108,16 @@ end
 
 -- Traiter une question en langage naturel
 local function process_question(question, player_name)
-	local keywords = extract_keywords(question)
+	--local keywords = extract_keywords(question)
 	
-	if #keywords == 0 then
-		chester_say("Je n'ai pas bien compris ta question. Peux-tu la reformuler ?", player_name)
-		chester_say("Ou tape 'chester list' pour voir ce que je connais.", player_name)
-		return
-	end
+	--if #keywords == 0 then
+	--	chester_say("Je n'ai pas bien compris ta question. Peux-tu la reformuler ?", player_name)
+	--	chester_say("Ou tape 'chester list' pour voir ce que je connais.", player_name)
+	--	return
+	--end
 	
 	-- Rechercher le premier mot-cle trouve
-	search_knowledge(keywords[1], player_name)
+	search_knowledge(question, player_name)
 end
 
 -- Liste des categories disponibles
