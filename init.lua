@@ -252,128 +252,118 @@ minetest.register_chatcommand("chester_cleanup", {
 	end
 })
 
+local punch_count = {}
+
 -- Spawn du NPC Chester (optionnel avec mobs_redo)
 if minetest.get_modpath("mobs") then
 	mobs:register_mob("chester:chester_npc", {
-		type = "npc",
-		nametag = "Chester",
-		description = "Chester - Guide du serveur",
-		passive = true,
-		hp_min = 100,
-		hp_max = 100,
-		immortal = true,
-		invulnerable = true,
-		damage_texture_modifier = "",  -- ← AJOUTE (pas de flash rouge)
-
-		on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
-			return true  -- Bloque tous les dégâts
-		end,
-		armor = 100,
-		collisionbox = {-0.35, 0, -0.35, 0.35, 1.8, 0.35},
-		physical = true,
-		collide_with_objects = true,
-		visual = "mesh",
-		mesh = "character.b3d",
-		textures = {
-			{"chester_npc.png"}
-		},
-		makes_footstep_sound = false,
-		sounds = {},
-		walk_velocity = 0,
-		run_velocity = 0,
-		jump = false,
-		jump_height = 0,
-		stepheight = 0,
-		walk_chance = 0,
-		stand_chance = 100,
-		jump_chance = 0,
-		pathfinding = false,
-		floats = 0,
-		automatic_face_movement_dir = false,
-		drops = {},
-		water_damage = 0,
-		lava_damage = 0,
-		light_damage = 0,
-		follow = {},
-		view_range = 15,
-		owner = "",
-		order = "stand",
-		fear_height = 0,
-		animation = {
-			speed_normal = 0,
-			speed_run = 0,
-			stand_start = 0,
-			stand_end = 79,
-			walk_start = 0,
-			walk_end = 79,
-			run_start = 0,
-			run_end = 79,
-			punch_start = 200,
-			punch_end = 219,
-		},
-		
-		on_rightclick = function(self, clicker)
-			-- Forcer le nametag
-			if not self.nametag or self.nametag == "" then
-				self.nametag = "Chester"
-			end
-			
-			local name = clicker:get_player_name()
-			
-			if not can_respond(name) then
-				chester_say("Attends un peu avant de me parler a nouveau !", name)
-				return
-			end
-			
-			local responses = {
-				"Bonjour ! Tu peux me poser des questions en ecrivant 'chester' suivi de ta question !",
-				"Salut ! Essaie : chester ou trouver des pommes dorees ?",
-				"Coucou ! Je connais plein de choses sur les mods du serveur ! Tape 'chester list'",
-				"Hello ! Besoin d'aide ? Tape 'chester' suivi de ta question dans le chat !"
-			}
-			
-			chester_say(responses[math.random(#responses)], name)
-		end
-
-		-- Compteur de coups (en dehors de la définition)
-		local punch_count = {}
-
-		-- Puis DANS la définition du mob :
-		on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
-			if not puncher or not puncher:is_player() then 
-				return true -- Bloque les dégâts
-			end
-			
-			local player_name = puncher:get_player_name()
-			
-			-- Initialiser compteur
-			punch_count[player_name] = (punch_count[player_name] or 0) + 1
-			local count = punch_count[player_name]
-			
-			-- Messages
-			if count == 1 then
-				chester_say("Aïe ! Arrête de me taper !", player_name)
-			elseif count == 3 then
-				chester_say("Sérieux, arrête ou je vais me fâcher !", player_name)
-			elseif count == 5 then
-				chester_say("STOP ! Tu m'énerves là !", player_name)
-			elseif count == 8 then
-				chester_say("DERNIER avertissement " .. player_name .. " !", player_name)
-			elseif count >= 10 then
-				minetest.kick_player(player_name, "Trop de violence envers Chester !")
-				punch_count[player_name] = 0
-				return true
-			end
-			
-			-- Reset après 60s
-			minetest.after(60, function()
-				if punch_count[player_name] and punch_count[player_name] > 0 then
-					punch_count[player_name] = punch_count[player_name] - 1
-				end
-			end)
-			
-			return true -- Bloque tous les dégâts
-		end
+        type = "npc",
+        nametag = "Chester",
+        description = "Chester - Guide du serveur",
+        passive = true,
+        hp_min = 100,
+        hp_max = 100,
+        immortal = true,
+        invulnerable = true,
+        damage_texture_modifier = "",
+        armor = 100,
+        collisionbox = {-0.35, 0, -0.35, 0.35, 1.8, 0.35},
+        physical = true,
+        collide_with_objects = true,
+        visual = "mesh",
+        mesh = "character.b3d",
+        textures = {
+            {"chester_npc.png"}
+        },
+        makes_footstep_sound = false,
+        sounds = {},
+        walk_velocity = 0,
+        run_velocity = 0,
+        jump = false,
+        jump_height = 0,
+        stepheight = 0,
+        walk_chance = 0,
+        stand_chance = 100,
+        jump_chance = 0,
+        pathfinding = false,
+        floats = 0,
+        automatic_face_movement_dir = false,
+        drops = {},
+        water_damage = 0,
+        lava_damage = 0,
+        light_damage = 0,
+        follow = {},
+        view_range = 15,
+        owner = "",
+        order = "stand",
+        fear_height = 0,
+        animation = {
+            speed_normal = 0,
+            speed_run = 0,
+            stand_start = 0,
+            stand_end = 79,
+            walk_start = 0,
+            walk_end = 79,
+            run_start = 0,
+            run_end = 79,
+            punch_start = 200,
+            punch_end = 219,
+        },
+        
+        on_rightclick = function(self, clicker)
+            if not self.nametag or self.nametag == "" then
+                self.nametag = "Chester"
+            end
+            
+            local name = clicker:get_player_name()
+            
+            if not can_respond(name) then
+                chester_say("Attends un peu avant de me parler a nouveau !", name)
+                return
+            end
+            
+            local responses = {
+                "Bonjour ! Tu peux me poser des questions en ecrivant 'chester' suivi de ta question !",
+                "Salut ! Essaie : chester ou trouver des pommes dorees ?",
+                "Coucou ! Je connais plein de choses sur les mods du serveur ! Tape 'chester list'",
+                "Hello ! Besoin d'aide ? Tape 'chester' suivi de ta question dans le chat !"
+            }
+            
+            chester_say(responses[math.random(#responses)], name)
+        end,  -- ← VIRGULE importante !
+        
+        on_punch = function(self, puncher, time_from_last_punch, tool_capabilities, dir)
+            if not puncher or not puncher:is_player() then 
+                return true
+            end
+            
+            local player_name = puncher:get_player_name()
+            
+            punch_count[player_name] = (punch_count[player_name] or 0) + 1
+            local count = punch_count[player_name]
+            
+            if count == 1 then
+                chester_say("Aïe ! Arrête de me taper !", player_name)
+            elseif count == 3 then
+                chester_say("Sérieux, arrête ou je vais me fâcher !", player_name)
+            elseif count == 5 then
+                chester_say("STOP ! Tu m'énerves là !", player_name)
+            elseif count == 8 then
+                chester_say("DERNIER avertissement " .. player_name .. " !", player_name)
+            elseif count >= 10 then
+                minetest.kick_player(player_name, "Trop de violence envers Chester !")
+                punch_count[player_name] = 0
+                return true
+            end
+            
+            minetest.after(60, function()
+                if punch_count[player_name] and punch_count[player_name] > 0 then
+                    punch_count[player_name] = punch_count[player_name] - 1
+                end
+            end)
+            
+            return true
+        end
 	})
 
 	-- Après la définition du mob, ajoute :
