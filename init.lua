@@ -12,7 +12,7 @@ local API_URL = "http://localhost/chester_api.php"
 
 -- Configuration Ollama
 local OLLAMA_URL = "http://127.0.0.1:11434/v1/chat/completions"
-local OLLAMA_MODEL = "llama3.2"  -- adapte selon ton modele Ollama
+local OLLAMA_MODEL = "llama3.2" 
 
 local OLLAMA_SYSTEM_PROMPT = [[
 Tu es Chester, le guide sympathique du serveur Minetest "Amelaye in Minerland".
