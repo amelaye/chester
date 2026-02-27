@@ -65,7 +65,7 @@ end
 local function ask_ollama(question, player_name)
 	if not http then return end
 
-	chester_say("Un instant je réfléchis !", player_name, true)
+	chester_say("Un instant je réfléchis ...", player_name, false)
 
 	local system = OLLAMA_SYSTEM_PROMPT
 	if chester_materials and chester_materials.get_available_materials then
@@ -131,7 +131,7 @@ local function search_knowledge(question, player_name)
 
 				-- Distinction reponse PostgreSQL vs Ollama (gere par l'API PHP)
 				if data.data.generated then
-					chester_say("Je réfléchis ... " .. content, player_name, false)
+					chester_say(content, player_name, false)
 					minetest.log("action", "[Chester] Reponse Ollama (via API PHP) envoyee a " .. player_name)
 				else
 					chester_say(content, player_name, false)
