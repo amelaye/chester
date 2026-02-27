@@ -36,9 +36,9 @@ local chester_materials = dofile(mod_dir .. "/chester_materials_context.lua")
 
 -- Messages de bienvenue
 local welcome_messages = {
-	[1] = "Bienvenue sur Amelaye in Minerland ! Allez a l'academie via la cabine bleue, decouvrez les sites majestueux avec la cabine rouge. Tu peux explorer aux alentours et construire dans un endroit eloigne des autres constructions de 500 blocs.",
-	[2] = "Bon retour parmi nous ! N'oublie pas : utilise le bouton dans le spawn pour etre teleporte dans une zone non construite !",
-	[3] = "Content de te revoir ! N'oublie pas : utilise le bouton dans le spawn pour etre teleporte dans une zone non construite !"
+	[1] = "Bienvenue sur Amelaye in Minerland ! Va à l'academie via la cabine verte, decouvre les sites majestueux avec la cabine bleue. Tu peux explorer aux alentours et construire dans un endroit eloigne des autres constructions de 500 blocs. Utilise le bouton dans le spawn pour etre teleporte dans une zone non construite !",
+	[2] = "Bon retour parmi nous !",
+	[3] = "Content de te revoir !"
 }
 
 -- Fonction pour encoder les URL
@@ -154,13 +154,14 @@ local function process_question(question, player_name)
 	search_knowledge(question, player_name)
 end
 
+
 -- Liste des categories disponibles
 local function list_categories(player_name)
 	chester_say("Je peux t'aider sur :", player_name, true)
 	chester_say("- Les mods : ethereal, glooptest, gloopblocks, rings, supercub", player_name, true)
 	chester_say("- Les arbres et plantes (pommes dorees, bananiers, etc)", player_name, true)
-	chester_say("- Les anneaux magiques (voler, feu, eau, etc)", player_name? true)
-	chester_say("- L'avion supercub (pilotage)", player_name? true)
+	chester_say("- Les anneaux magiques (voler, feu, eau, etc)", player_name, true)
+	chester_say("- L'avion supercub (pilotage)", player_name, true)
 	chester_say("- Les minerais (kalite, alatro, etc)", player_name, true)
 	chester_say("", player_name, true)
 	chester_say("Pose-moi une question comme : 'chester ou trouver des pommes dorees ?'", player_name, true)
@@ -184,10 +185,10 @@ minetest.register_on_joinplayer(function(player)
 
 	minetest.after(2, function()
 		local msg = welcome_messages[math.min(login_count, 3)]
-		chester_say(msg, player_name)
+		chester_say(msg, player_name, true)
 		if login_count == 1 then
-			chester_say("Je suis Chester, ton guide ! Tu peux me poser des questions en ecrivant 'chester' suivi de ta question.", player_name)
-			chester_say("Exemple : chester ou trouver des pommes dorees ?", player_name)
+			chester_say("Je suis Chester, ton guide ! Tu peux me poser des questions en ecrivant 'chester' suivi de ta question.", player_name, true)
+			chester_say("Exemple : chester ou trouver des pommes dorees ?", player_name, true)
 		end
 	end)
 end)
@@ -201,7 +202,7 @@ minetest.register_chatcommand("chester", {
 			return false, "Attends un peu avant de me reposer une question !"
 		end
 		if param == "" then
-			chester_say("Pose-moi une question ! Exemple : chester ou trouver des pommes dorees ?", name)
+			chester_say("Pose-moi une question ! Exemple : chester ou trouver des pommes dorees ?", name, true)
 			return true
 		end
 		if param == "list" then
@@ -218,15 +219,15 @@ minetest.register_on_chat_message(function(name, message)
 	local msg_lower = message:lower()
 	if msg_lower:match("^chester[%s,:]") or msg_lower == "chester" then
 		if not can_respond(name) then
-			chester_say("Attends un peu avant de me reposer une question !", name)
+			chester_say("Attends un peu avant de me reposer une question !", name, true)
 			return false
 		end
 		local question = message:match("[Cc]hester[%s,:]*(.+)")
 		if question and question ~= "" then
 			process_question(question, name)
 		else
-			chester_say("Oui ? Pose-moi une question !", name)
-			chester_say("Exemple : chester ou trouver des pommes dorees ?", name)
+			chester_say("Oui ? Pose-moi une question !", name, true)
+			chester_say("Exemple : chester ou trouver des pommes dorees ?", name, true)
 		end
 		return false
 	end
@@ -290,7 +291,7 @@ if minetest.get_modpath("mobs") then
 			end
 			local name = clicker:get_player_name()
 			if not can_respond(name) then
-				chester_say("Attends un peu avant de me parler a nouveau !", name)
+				chester_say("Attends un peu avant de me parler a nouveau !", name, true)
 				return
 			end
 			local responses = {
@@ -299,7 +300,7 @@ if minetest.get_modpath("mobs") then
 				"Coucou ! Je connais plein de choses sur les mods du serveur ! Tape 'chester list'",
 				"Hello ! Besoin d'aide ? Tape 'chester' suivi de ta question dans le chat !"
 			}
-			chester_say(responses[math.random(#responses)], name)
+			chester_say(responses[math.random(#responses)], name, true)
 		end
 	})
 
@@ -324,13 +325,13 @@ if minetest.get_modpath("mobs") then
 							punch_count[player_name] = (punch_count[player_name] or 0) + 1
 							local count = punch_count[player_name]
 							if count == 1 then
-								chester_say("Aie ! Arrete de me taper !", player_name)
+								chester_say("Aie ! Arrete de me taper !", player_name, true)
 							elseif count == 3 then
-								chester_say("Serieux, arrete !", player_name)
+								chester_say("Serieux, arrete !", player_name, true)
 							elseif count == 5 then
-								chester_say("STOP !", player_name)
+								chester_say("STOP !", player_name, true)
 							elseif count == 8 then
-								chester_say("DERNIER avertissement !", player_name)
+								chester_say("DERNIER avertissement !", player_name, true)
 							elseif count >= 10 then
 								minetest.kick_player(player_name, "Violence envers Chester !")
 								punch_count[player_name] = 0
