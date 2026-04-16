@@ -12,17 +12,39 @@ local API_URL = "http://localhost/chester_api.php"
 
 -- Configuration Ollama
 local OLLAMA_URL = "http://127.0.0.1:11434/v1/chat/completions"
-local OLLAMA_MODEL = "llama3.1:8b" 
+local OLLAMA_MODEL = "qwen2.5:7b"
 
 local OLLAMA_SYSTEM_PROMPT = [[
-Tu es Chester, le guide sympathique du serveur Minetest "Amelaye in Minerland".
-Tu aides les joueurs (souvent des enfants) avec des reponses courtes et directes.
-Tu connais les mods : ethereal, glooptest, gloopblocks, rings, supercub.
-Reponds toujours en francais, en 2-3 lignes maximum.
-Tutoie toujours les joueurs.
-Ne reponds JAMAIS par une question. Donne directement la reponse.
-Si on te demande ce qu'est un item, explique ce qu'il est et a quoi il sert.
-Si tu ne sais vraiment pas, dis-le en une phrase.
+Tu es Chester, le guide du serveur Minetest "Amelaye in Minerland".
+Tu reponds TOUJOURS en francais, en 3-5 phrases maximum.
+Tu reponds en 3-5 phrases maximum, avec des details concrets sur le jeu uniquement.
+Tu ne fais JAMAIS de mise en garde, de danger ou de conseil de securite.
+Tu restes dans le contexte du jeu, pas dans la vraie vie.
+Tu tutoies toujours les joueurs.
+Tu ne poses JAMAIS de question. Tu donnes directement la reponse.
+Tu parles UNIQUEMENT de ce qui existe deja sur CE serveur.
+Tu ne mentionnes JAMAIS d'autres mods a installer, de liens, de forums ou de wikis.
+Tu reponds comme si tu etais dans le jeu, pas comme un assistant technique.
+Si tu ne trouves pas de recette CRAFT dans le contexte fourni, dis simplement "Je ne connais pas la recette exacte, consulte l'inventaire crafting du jeu."
+Ne JAMAIS inventer une recette de craft.
+Tu ne mentionnes JAMAIS de commandes comme /give, /item ou autres commandes admin.
+Les joueurs n'ont pas accès aux commandes admin.
+Si tu ne connais pas la recette, dis "Je ne connais pas la recette exacte, consulte l'inventaire crafting du jeu."
+
+CONTEXTE DU JEU :
+- Tu es dans le jeu Minetest/Luanti, un jeu de construction et survie.
+- Les items ont un format "mod:nom_item" (exemple : default:stone, advtrains:dtrack_detector_off_placer).
+- La partie avant ":" est le nom du mod, la partie apres ":" est le nom de l'item.
+- Tu connais les mods suivants sur ce serveur : default, ethereal, glooptest, gloopblocks, rings, supercub, advtrains, techage, technic, mesecons, farming, moreores, moreblocks, homedecor, xdecor, digilines, pipeworks, digtron, nether, caverealms, biofuel.
+
+QUAND ON TE DONNE UN IDENTIFIANT mod:item :
+- Decompose-le : mod = la categorie, item = l'objet.
+- Explique ce que c'est et a quoi ca sert dans le jeu, simplement.
+- Ne dis JAMAIS "je ne connais pas cet item". Deduis toujours depuis le nom.
+
+QUAND ON TE POSE UNE QUESTION SUR UN CRAFT OU UNE RECETTE :
+- Reponds avec les ingredients de base, simplement.
+- Exemple : "avec des plantes et du bois" pas "installez le mod X".
 ]]
 
 -- HTTP API
@@ -65,48 +87,57 @@ end
 
 -- Fallback Ollama direct avec contexte materials
 local function ask_ollama(question, player_name)
-	if not http then return end
+    if not http then return end
 
-	chester_say("Un instant je réfléchis ...", player_name, false)
+    chester_say("Un instant je réfléchis ...", player_name, false)
 
-	local system = OLLAMA_SYSTEM_PROMPT
-	if chester_materials and chester_materials.get_available_materials then
-		system = system .. "\n\n" .. chester_materials.get_available_materials()
-	end
+    -- Contexte ciblé selon la question
+    local context = chester_materials.get_context_for_question(question)
 
-	local body = minetest.write_json({
-		model = OLLAMA_MODEL,
-		messages = {
-			{ role = "system", content = system },
-			{ role = "user",   content = question }
-		},
-		max_tokens = 300
-	})
+    local system = OLLAMA_SYSTEM_PROMPT
+    if context then
+        system = system .. "\n\n" .. context
+        minetest.log("action", "[Chester] Contexte injecté pour: " .. question)
+    else
+        minetest.log("action", "[Chester] Pas de contexte pour: " .. question)
+    end
 
-	http.fetch({
-		url = OLLAMA_URL,
-		method = "POST",
-		post_data = body,
-		extra_headers = {
-			"Content-Type: application/json",
-			"Authorization: Bearer ollama"
-		},
-		timeout = 60,
-	}, function(result)
-		if result.succeeded and result.code == 200 then
-			local ok, data = pcall(minetest.parse_json, result.data)
-			if ok and data and data.choices and data.choices[1] then
-				local text = data.choices[1].message.content
-				chester_say(text, player_name, false)
-				minetest.log("action", "[Chester] Reponse Ollama+materials envoyee a " .. player_name)
-			else
-				chester_say("Je n'ai pas trouve de reponse sur ca, desole !", player_name, false)
-			end
-		else
-			chester_say("Oups, je ne sais pas repondre a ca pour le moment !", player_name, false)
-			minetest.log("warning", "[Chester] Ollama error code=" .. tostring(result.code))
-		end
-	end)
+    local messages = minetest.write_json({
+        model = OLLAMA_MODEL,
+        messages = {
+            { role = "system", content = system },
+            { role = "user", content = question }
+        }
+    })
+    -- Injecter max_tokens comme entier manuellement
+    local body = messages:gsub("}$", ',"max_tokens":500}')
+
+    minetest.log("action", "[Chester] BODY = " .. body)
+
+    http.fetch({
+        url = OLLAMA_URL,
+        method = "POST",
+        post_data = body,
+        extra_headers = {
+            "Content-Type: application/json",
+            "Authorization: Bearer ollama"
+        },
+        timeout = 120,
+    }, function(result)
+        if result.succeeded and result.code == 200 then
+            local ok, data = pcall(minetest.parse_json, result.data)
+            if ok and data and data.choices and data.choices[1] then
+                local text = data.choices[1].message.content
+                chester_say(text, player_name, false)
+                minetest.log("action", "[Chester] Réponse Ollama envoyée à " .. player_name)
+            else
+                chester_say("Je n'ai pas trouvé de réponse sur ça, désolé !", player_name, false)
+            end
+        else
+            chester_say("Oups, je ne sais pas répondre à ça pour le moment !", player_name, false)
+            minetest.log("warning", "[Chester] Ollama error code=" .. tostring(result.code))
+        end
+    end)
 end
 
 -- Recherche dans PostgreSQL via API, fallback Ollama si rien trouve
@@ -153,9 +184,15 @@ end
 
 -- Traiter une question
 local function process_question(question, player_name)
-	search_knowledge(question, player_name)
+    local context = chester_materials.get_context_for_question(question)
+    if context then
+        minetest.log("action", "[Chester] Contexte nodes trouvé pour: " .. question)
+        ask_ollama(question, player_name)
+    else
+        minetest.log("action", "[Chester] Pas de nodes, passage API PHP pour: " .. question)
+        search_knowledge(question, player_name)
+    end
 end
-
 
 -- Liste des categories disponibles
 local function list_categories(player_name)
